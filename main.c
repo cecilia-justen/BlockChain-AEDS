@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "openssl/ssl.h" // Biblioteca para usar SHA-256
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 // Estrutura de um bloco
 typedef struct Block {
@@ -9,11 +10,11 @@ typedef struct Block {
     char previous_hash[65];
     char data[256];
     char hash[65];
-    int nonce; // Número usado na prova de trabalho
+    int nonce; // Nï¿½mero usado na prova de trabalho
     struct Block *next;
 } Block;
 
-// Função para calcular o hash SHA-256
+// Funï¿½ï¿½o para calcular o hash SHA-256
 void calculate_hash(Block *block, char *output) {
     char input[512];
     snprintf(input, sizeof(input), "%d%s%s%d", 
@@ -29,7 +30,7 @@ void calculate_hash(Block *block, char *output) {
     output[64] = '\0'; // Finaliza a string com nulo
 }
 
-// Função para realizar a prova de trabalho
+// Funï¿½ï¿½o para realizar a prova de trabalho
 void proof_of_work(Block *block, int difficulty) {
     char prefix[65] = {0};
     memset(prefix, '0', difficulty); // Cria um prefixo com 'difficulty' zeros
@@ -41,10 +42,10 @@ void proof_of_work(Block *block, int difficulty) {
         calculate_hash(block, block->hash);
     } while (strncmp(block->hash, prefix, difficulty) != 0);
 
-    printf("Prova de trabalho concluída para o bloco %d! Nonce: %d\n", block->index, block->nonce);
+    printf("Prova de trabalho concluï¿½da para o bloco %d! Nonce: %d\n", block->index, block->nonce);
 }
 
-// Função para criar um bloco
+// Funï¿½ï¿½o para criar um bloco
 Block *create_block(int index, const char *previous_hash, const char *data, int difficulty) {
     Block *block = (Block *)malloc(sizeof(Block));
     block->index = index;
@@ -52,34 +53,34 @@ Block *create_block(int index, const char *previous_hash, const char *data, int 
     strncpy(block->data, data, 256);
     block->nonce = 0;
 
-    // Prova de trabalho para encontrar o hash válido
+    // Prova de trabalho para encontrar o hash vï¿½lido
     proof_of_work(block, difficulty);
 
     block->next = NULL;
     return block;
 }
 
-// Função para criar o bloco gênesis
+// Funï¿½ï¿½o para criar o bloco gï¿½nesis
 Block *create_genesis_block(int difficulty) {
-    printf("Criando bloco gênesis...\n");
+    printf("Criando bloco gï¿½nesis...\n");
     return create_block(0, "0", "Genesis Block", difficulty);
 }
 
-// Função para adicionar um bloco à cadeia
+// Funï¿½ï¿½o para adicionar um bloco ï¿½ cadeia
 void add_block(Block **blockchain, const char *data, int difficulty) {
     Block *last_block = *blockchain;
 
-    // Percorre a cadeia até o último bloco
+    // Percorre a cadeia atï¿½ o ï¿½ltimo bloco
     while (last_block->next != NULL) {
         last_block = last_block->next;
     }
 
-    // Cria um novo bloco e adiciona à cadeia
+    // Cria um novo bloco e adiciona ï¿½ cadeia
     Block *new_block = create_block(last_block->index + 1, last_block->hash, data, difficulty);
     last_block->next = new_block;
 }
 
-// Função para imprimir toda a cadeia
+// Funï¿½ï¿½o para imprimir toda a cadeia
 void print_blockchain(Block *blockchain) {
     Block *current = blockchain;
 
@@ -93,14 +94,14 @@ void print_blockchain(Block *blockchain) {
     }
 }
 
-// Função principal
+// Funï¿½ï¿½o principal
 int main() {
-    int difficulty = 4; // Número de zeros iniciais no hash
+    int difficulty = 4; // Nï¿½mero de zeros iniciais no hash
 
-    // Cria o bloco gênesis
+    // Cria o bloco gï¿½nesis
     Block *blockchain = create_genesis_block(difficulty);
 
-    // Adiciona blocos à cadeia
+    // Adiciona blocos ï¿½ cadeia
     add_block(&blockchain, "Primeiro bloco de dados", difficulty);
     add_block(&blockchain, "Segundo bloco de dados", difficulty);
 
@@ -108,7 +109,7 @@ int main() {
     printf("Imprimindo a blockchain completa:\n");
     print_blockchain(blockchain);
 
-    // Liberação de memória
+    // Liberaï¿½ï¿½o de memï¿½ria
     Block *current = blockchain;
     while (current != NULL) {
         Block *temp = current;
