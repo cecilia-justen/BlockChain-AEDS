@@ -5,15 +5,24 @@
 #include <time.h>
 #include <unistd.h>  // Inclui a função sleep para simular atraso
 
+// Lista de transações
+typedef struct TransactionList {
+    int id;                         // ID da transação
+    char type[32];                  // Tipo da transacao realizada
+    float value;                    // Valor da transacao
+    struct TransactionList *next;              // Ponteiro para a próxima transação
+} List;
+
 // Estrutura de um bloco
 typedef struct Block {
-    int index;               // Índice do bloco na cadeia
-    char previous_hash[65];  // Hash do bloco anterior
-    char data[256];          // Dados armazenados no bloco
-    char hash[65];           // Hash atual do bloco
-    int nonce;               // Número usado para a prova de trabalho
-    time_t timestamp;        // Timestamp da criação do bloco
-    struct Block *next;      // Ponteiro para o próximo bloco
+    int index;                      // Índice do bloco na cadeia
+    char previous_hash[65];         // Hash do bloco anterior
+    char data[256];                 // Dados armazenados no bloco
+    char hash[65];                  // Hash atual do bloco
+    int nonce;                      // Número usado para a prova de trabalho
+    time_t timestamp;               // Timestamp da criação do bloco
+    List *transaction;       // Ponteiro para Lista de Transações
+    struct Block *next;             // Ponteiro para o próximo bloco
 } Block;
 
 // Função para calcular o hash SHA-256
@@ -21,7 +30,14 @@ void calculate_hash(Block *block, char *output) {
     char input[512];
     snprintf(input, sizeof(input), "%d%s%s%d%ld", block->index, block->previous_hash,
              block->data, block->nonce, block->timestamp);
-
+    
+    List *current_transaction = block->transaction;
+    while (current_transaction != NULL) {
+        char transaction_data[128];
+        snprintf(transaction_data, sizeof(transaction_data), "%d%s%.2f", current_transaction->id, current_transaction->type, current_transaction->value);
+        strncat(input, transaction_data, sizeof(input) - strlen(input) - 1);
+        current_transaction = current_transaction->next;
+    }
     unsigned char hash[SHA256_DIGEST_LENGTH];
     SHA256((unsigned char *)input, strlen(input), hash);
 
@@ -73,6 +89,28 @@ Block *create_genesis_block(int difficulty) {
     return create_block(0, "0", "Genesis Block", difficulty);
 }
 
+//Função para adicionar transações ao bloco
+void add_transaction(Block *block, int id, const char *type, double value) {
+    // Criar uma nova transação
+    List *new_transaction = (List *)malloc(sizeof(List));
+    new_transaction->id = id;
+    strncpy(new_transaction->type, type, sizeof(new_transaction->type) - 1);
+    new_transaction->type[sizeof(new_transaction->type) - 1] = '\0'; // Garante o null-terminator
+    new_transaction->value = value;
+    new_transaction->next = NULL;
+
+    // Insere a transação na lista
+    if (block->transaction == NULL) {
+        block->transaction = new_transaction; // Primeira transação
+    } else {
+        List *current = block->transaction;
+        while (current->next != NULL) {
+            current = current->next; // Navega até o final da lista
+        }
+        current->next = new_transaction; // Adiciona ao final
+    }
+}
+
 // Função para adicionar um bloco à cadeia
 void add_block(Block **blockchain, const char *data, int difficulty) {
     Block *last_block = *blockchain;
@@ -101,6 +139,21 @@ void print_blockchain(Block *blockchain) {
         printf("Dados: %s\n", current->data);
         printf("Hash: %s\n", current->hash);
         printf("Nonce: %d\n\n", current->nonce);
+        current = current->next;
+    }
+}
+
+// Função para imprimir as transações
+void print_transactions(Block *block) {
+    if (block->transaction == NULL) {
+        printf("Nenhuma transação neste bloco.\n");
+        return;
+    }
+
+    List *current = block->transaction;
+    printf("Transações no bloco %d:\n", block->index);
+    while (current != NULL) {
+        printf("ID: %d | Tipo: %s | Valor: %.2f\n", current->id, current->type, current->value);
         current = current->next;
     }
 }
@@ -197,7 +250,7 @@ int main() {
     int option;
     char data[256];
     int index;
-
+    
     do {
         display_menu();
         scanf("%d", &option);
